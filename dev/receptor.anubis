@@ -41,6 +41,8 @@ sub modxml($);
 sub readConfigXML();
 sub installServer(@);
 sub removeServer(@);
+sub validateIServer(@@);
+sub validateRServer(@@);
 
 my @CommandsFile;
 my %Commands;
@@ -107,6 +109,7 @@ sub modxml($) {   #### INCOMPLETE!!!!!!!!!!!!!!!!!
             @tempArray = $configuration->{$serverstate}->{server}->{url};
             push (@tempArray, $configuration->{$serverstate}->{server}->{serverdir});
             push (@tempArray, $configuration->{$serverstate}->{server}->{commandfilelocation});
+            push (@tempArray, $configuration->{$serverstate}->{server}->{authlocation});
             push (@tempArray, $configuration->{$serverstate}->{server}->{logfile});
             push (@{ $SERVER[$#SERVER + 1] }, @tempArray);
             @tempArray = ();
@@ -116,6 +119,8 @@ sub modxml($) {   #### INCOMPLETE!!!!!!!!!!!!!!!!!
             @tempArray = $configuration->{$serverstate}->{authentication}->{key};
             push (@tempArray, $configuration->{$serverstate}->{authentication}->{code});
             push (@tempArray, $configuration->{$serverstate}->{authentication}->{proof});
+            push (@tempArray, $configuration->{$serverstate}->{authentication}->{username});
+            push (@tempArray, $configuration->{$serverstate}->{authentication}->{email});
             my $codetype;
             if ($serverstate eq 'iserver') {
                 $codetype = 'icode';
@@ -136,11 +141,19 @@ sub modxml($) {   #### INCOMPLETE!!!!!!!!!!!!!!!!!
             $r->properties(KEY, $authenticationArray[$_][0]);
             $r->properties(CODE, $authenticationArray[$_][1]);
             $r->properties(PROOF, $authenticationArray[$_][2]);
-            if ($r->properties(IRCODE, $authenticationArray[$_][4]) != ERROR_INVALID_IRCODE) {
-                if ($authenticationArray[$_][3] == "icode") {
-                    installServer(@SERVER);
+            if ($r->properties(IRCODE, $authenticationArray[$_][6]) != ERROR_INVALID_IRCODE) {
+                if ($authenticationArray[$_][5] == "icode") {
+                    if (validateIServer(@SERVER, @authenticationArray)) {
+                        installServer(@SERVER);
+                    } else {
+                        print "Server not valid.  It's request shall not be honored.";
+                    }
                 } else {
-                    removeServer(@SERVER);
+                    if (validateRServer(@SERVER, @authenticationArray)) {
+                        removeServer(@SERVER);
+                    } else {
+                        print "Server not valid.  It's request shall not be honored.";
+                    }
                 }
             }
         }
@@ -158,6 +171,31 @@ sub installServer(@) {
 }
 
 sub removeServer(@) {
+
+}
+
+sub validateIServer(@@) {
+    # username compiles to key
+    # email compiles to code
+    # proof, key, and code are all confirmed
+    # checks the auth key on the server which is an xml
+    # file (generatable in the ANUBIS Interface).
+    # Once everything is confirmed, it prompts the
+    # user by interfacing with the ANUBIS Notifier.
+    # Upon confirmation, return true;
+}
+
+sub validateRServer(@@) {
+    # username compiles to key
+    # email compiles to code
+    # proof, key, and code are all confirmed
+    # checks the auth key on the server which is an xml
+    # file (generatable in the ANUBIS Interface).
+    # Confirms all this information not only matches the server
+    # but also the config file.
+    # Once everything is confirmed, it prompts the
+    # user by interfacing with the ANUBIS Notifier.
+    # Upon confirmation, return true;
 
 }
 
