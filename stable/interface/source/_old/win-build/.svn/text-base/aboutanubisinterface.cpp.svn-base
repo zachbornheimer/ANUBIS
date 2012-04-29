@@ -1,0 +1,13 @@
+#include "aboutanubisinterface.h"
+#include "ui_aboutanubisinterface.h"
+
+aboutANUBISInterface::aboutANUBISInterface(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::aboutANUBISInterface) {
+    ui->setupUi(this);
+    connect(ui->okayButton, SIGNAL(clicked()), this, SLOT(close()));
+}
+
+aboutANUBISInterface::~aboutANUBISInterface() {
+    delete ui;
+}

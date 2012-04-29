@@ -1,0 +1,30 @@
+<mod>
+    <iserver>
+        <server>
+            <url>http://ravenclaw.dyndns.org/anubis/</url>
+            <serverdir></serverdir>
+            <commandfilelocation></commandfilelocation>
+            <logfile></logfile>
+        </server>
+        <authentication>
+            <key>nxen^~}{eR0=onitJ`,mn}|lay^mecUg6SX{1anv,gLWRvU_f}tBb(jPy}4|leDS)H."~S]nRng:u:(_Tm(GLSex$Y]pB|"sHU|+{PqwxU",ZuTd`o2yb,S"i~A@B*TCM]nt$+lhc{)zmEtD*{$y~:fWe[i_|]|rzc/qvJ2%Rzj}2pJj_C,"^{~|fAxy}.G{-h*gvYx_SR.TIlMP_kRx=r`rg}$akoL|</key>
+            <code>"teiY`Pkykbrvaa{~onvkDL^q:q{vYw)["mdkw)r$-?}jg~o^s}_o0xe]{W#6:+"C[esz^%Wxe=Az1W_e_D/}{wiutW|-+,4V|G~b-.w+p|hC%~*6LeEpi\i)p$g{3M-Z)}[K8hq1{9)-^^=0r3_$3b{G.ka\ctw[c{ag-0I*mIz"ZzUJSym]CZ5aN451%y|"ml=yS_%#O|cMO[%t7Vx$`mrQx[qdL.Dy~vr{z_qbo*tp*$_6mwkm$X%]hTuI":LeIjuf{F@EGe"?v)zrE~j/Qlg%Vbp{[mcm$GOYcbz_IS~0c?PGsK]{b,_3|Kbkb$</code>
+            <proof>KpAAYS^;,-87)]1]0^GUc_-]71_:O#t7W0/}A=6b)P)w"|]-mfM|GCcMLK-X@f#wQ@QlcUzycwp,;uW"=s7eV6bg?p2w6V]$%+fz43uE^Gm2)TsR+=/F;]#$[#B-H9[di8;YSeJVe_$^kc#2v-;G)]qe7{],{]@#HX;=1wo7^Sms-)"{eY\iL[+Xf429L6M0`@O."lwY?Q%)K$`^9"W-yoOy=)Iw|5p1leQ-M6-*8M.b-xLu3j6iVY@o]PM"/LRaOj*,;#7p-Eb;\C{8z=rVqq.VdWqp3]%V7zY"(O#q7J1f?r-qU;+6!l3#]Vv1wsH8ipS|3g#.6{aa1"LZ%ydd,IH_B-72Rz}t\?;qwcRHrzeY.mq791%#pkJ?)SJqL"v8$%[]j-m"|c\I)R`9"P0/4|b4(mc)o:-USo;K})a][;8I)\@UA]4]kXf7bIs]^Kf"E3A#{gIYZ.pKq6fv,{#O%|S0eEa9(M/._SL=HQS8;M];eM7221d+X%L64UVsoGZ[`,[/L##:8iY-r!A.z7JEh6y/2bS3p)-xWy6;AA."%@?42KKQpY^6\1A%Y2K`"U/j#|L95h#y8K1S4fki"K\V.o;;v37fEBv?u$6KL(S4m"iv1QG)=q_(y;)^"7]fG18lQfL4[19SDEC.SCAnqBU\m9gyCG|7p[8M{+6IvUW-`Y6Qy]dq,w]-uS/.1iik}~#.h11l*SUA{O7IBf,QS[6fyljl@cY</proof>
+            <icode></icode>
+        </authentication>
+    </iserver>
+    <rserver>
+        <server>
+            <url></url>
+            <serverdir></serverdir>
+            <commandfilelocation></commandfilelocation>
+            <logfile></logfile>
+        </server>
+        <authentication>
+            <key></key>
+            <code></code>
+            <proof></proof>
+            <rcode></rcode>
+        </authentication>
+    </rserver>
+</mod>

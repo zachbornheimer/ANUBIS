@@ -1,0 +1,33 @@
+#!C:\Program Files\ActiveState Perl Dev Kit 8.0.1\bin\perlapp-gui.exe
+PAP-Version: 1.0
+Packer: C:\Program Files\ActiveState Perl Dev Kit 8.0.1\bin\perlapp.exe
+Script: receptor.anubis
+Cwd: C:\Documents and Settings\Zachary Bornheimer\Desktop\anubis\stable
+Clean: 1
+Date: 2011-06-01 14:44:27
+Debug: 
+Dependent: 0
+Dyndll: 0
+Exe: ..\..\receptord.anubis.exe
+Force: 0
+Gui: 1
+Hostname: zachibm
+Icon: interface\windows\build\ANUBIS.ico
+No-Compress: 0
+No-Logo: 0
+Runlib: 
+Shared: none
+Tmpdir: 
+Verbose: 0
+Version-Comments: 
+Version-CompanyName: The Technetronics Group
+Version-FileDescription: The Daemon Interface for the ANUBIS client.
+Version-FileVersion: 0.6.0
+Version-InternalName: ANUBIS_DAEMON_WINDOWS
+Version-LegalCopyright: Copyright 2011 Zachary Bornheimer.
+Version-LegalTrademarks: 
+Version-OriginalFilename: anubisd
+Version-ProductName: anubisd
+Version-ProductVersion: 0.6.0
+Warnings: 0
+Xclude: 0

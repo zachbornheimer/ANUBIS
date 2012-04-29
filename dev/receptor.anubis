@@ -1,0 +1,554 @@
+#!/usr/bin/perl
+# receptor.anubis
+# This is the daemon client that interacts with ANUBIS (Autonomous Network Utility Broadcasting Installation Signals)
+# This script analyzes the code published by the ANUBIS Interface and acts on those commands
+# The script looks at pseudo-random intervals greater than 42 minutes.
+
+# Note, on Mac OS X and Linux, this script requires super user privilages.
+
+use strict;
+use warnings;
+use Cwd;
+use File::Path;
+use LWP::Simple;
+
+# prototypes
+sub downloadCommandsFile();
+sub getCommandsToRun();
+sub getListOfCommandNumbersToRun();
+sub commandsToRun(@);
+sub removeElementFromArray($@);
+sub checkIntegrityOfCommands();
+sub getBaseOSName();
+sub getOSName();
+sub OSIsOSX();
+sub OSIsLinux();
+sub macOSName();
+sub linuxOSName();
+sub windowsOSName();
+sub necessaryInstallation();
+sub downloadNecessaryFiles($);
+sub isTargetedOS($);
+sub performCommands($);
+sub executeCommand($$$);
+sub executionSignal();
+sub cleanup($);
+sub subWildcards($$);
+sub getExtension($);
+sub osName($);
+sub printToLog($);
+sub modxml($);
+sub readConfigXML();
+sub installServer(@);
+sub removeServer(@);
+
+my @CommandsFile;
+my %Commands;
+my @CommandNumbersToRun;
+my @CommandIDs;
+
+my (@SERVERS, @SERVER, $SERVER, $ANUBIS_DIRECTORY_ON_SERVER, $ANUBIS_COMMAND_FILE_IN_DIRECTORY, $LOGFILE, $SLEEP_TIME, $POSSIBLE_DIR_CODES, $POSSIBLE_EXECUTION_CODES, $POSSIBLE_EXECUTION_COMMANDS);
+my ($key, $code, $proof);
+
+$SLEEP_TIME = '0';
+
+use Getopt::Long;
+my $ModXMLFile = "mod.xml";
+my $ConfigFile = "config.xml";
+GetOptions("configFile=s" => \$ModXMLFile,);
+&modxml($ModXMLFile);
+
+use constant POSSIBLE_DIR_CODES => ['dir', 'requiredFiles', 'filesOSSpecific', 'os', 'osVersionRequired'];
+use constant POSSIBLE_EXECUTION_CODES => ['command', 'commandEXT', 'cleanup'];
+use constant POSSIBLE_EXECUTION_COMMANDS => ['_execute'];
+
+while (1) {
+    
+    #sleep($SLEEP_TIME + int(rand(61)));
+    
+    readConfigXML();
+    for (0 .. $#SERVERS) {
+        $SERVER                           = $SERVER[$_][0];
+        $ANUBIS_DIRECTORY_ON_SERVER       = $SERVER[$_][1];
+        $ANUBIS_COMMAND_FILE_IN_DIRECTORY = $SERVER[$_][2];
+        $LOGFILE                          = $SERVER[$_][3];
+    
+        # Declaration of Globals
+        @CommandsFile = downloadCommandsFile();
+        unless ($CommandsFile[0] eq 'do_not_continue') {
+            %Commands            = getCommandsToRun();                # This hash will be in the format of: {COMMAND ID}_{COMMAND TYPE}  => {COMMAND}
+            @CommandNumbersToRun = getListOfCommandNumbersToRun();    # Gets an array of commands that need to be reinstalled or installed for the first time
+            
+            # The Script
+            if (necessaryInstallation()) {
+                foreach (@CommandNumbersToRun) {
+                    downloadNecessaryFiles($_);
+                    performCommands($_);
+                    cleanup($_);
+                }
+            } ## end if (necessaryInstallation...)
+        } ## end unless ($CommandsFile[0] eq...)
+    }
+} ## end while (1)
+
+# Subroutines
+
+sub modxml($) {   #### INCOMPLETE!!!!!!!!!!!!!!!!!
+    my $file = shift;
+
+    use XML::Simple;
+    
+    my $configuration = XMLin('mod.xml');
+    my (@authenticationArray, @tempArray);
+    
+    foreach my $serverstate ('iserver', 'rserver') {
+
+        if ($configuration->{$serverstate} && $serverstate eq 'iserver') {
+            @tempArray = $configuration->{$serverstate}->{server}->{url};
+            push (@tempArray, $configuration->{$serverstate}->{server}->{serverdir});
+            push (@tempArray, $configuration->{$serverstate}->{server}->{commandfilelocation});
+            push (@tempArray, $configuration->{$serverstate}->{server}->{logfile});
+            push (@{ $SERVER[$#SERVER + 1] }, @tempArray);
+            @tempArray = ();
+        }
+        
+        if ($configuration->{$serverstate}->{authentication}) {
+            @tempArray = $configuration->{$serverstate}->{authentication}->{key};
+            push (@tempArray, $configuration->{$serverstate}->{authentication}->{code});
+            push (@tempArray, $configuration->{$serverstate}->{authentication}->{proof});
+            my $codetype;
+            if ($serverstate eq 'iserver') {
+                $codetype = 'icode';
+            } else {
+                $codetype = 'rcode';
+            }
+            push (@tempArray, $codetype);
+            push (@tempArray, $configuration->{$serverstate}->{authentication}->{$codetype});
+            push @{ $authenticationArray[$#authenticationArray + 1] }, @tempArray };
+            undef @tempArray;
+            undef $codetype;
+        }
+        
+        
+        for (0 .. $#authenticationArray) {
+            use Ragnarok;
+            my $r = new Ragnarok;
+            $r->properties(KEY, $authenticationArray[$_][0]);
+            $r->properties(CODE, $authenticationArray[$_][1]);
+            $r->properties(PROOF, $authenticationArray[$_][2]);
+            if ($r->properties(IRCODE, $authenticationArray[$_][4]) != ERROR_INVALID_IRCODE) {
+                if ($authenticationArray[$_][3] == "icode") {
+                    installServer(@SERVER);
+                } else {
+                    removeServer(@SERVER);
+                }
+            }
+        }
+
+        exit;
+    
+} ## end sub modxml($)
+
+sub readConfigXML() {
+    
+}
+
+sub installServer(@) {
+
+}
+
+sub removeServer(@) {
+
+}
+
+
+sub downloadCommandsFile() {
+    
+    # Takes no argument.  Returns an array with each element a line from the online command file.
+    my $file;
+    $file = get($SERVER . $ANUBIS_DIRECTORY_ON_SERVER . '/' . $ANUBIS_COMMAND_FILE_IN_DIRECTORY) or return ('do_not_continue');
+    return split(/\n/, $file);
+    
+} ## end sub downloadCommandsFile
+
+sub getCommandsToRun() {
+    
+    # Takes no argument.  Goal is to create a single hash, %Commands, that contains all of the information
+    # that was in the online file.  This also collects the Command ID numbers off all different commands
+    # so they can be verified in another subroutine.
+    my %Commands;
+    my %commandCodes;
+    my @commandLines;
+    my $i = 0;
+    my $commandID;
+    my $applicable;
+    my $baseOSName = &getBaseOSName;
+    my $osName     = &getOSName;
+    
+    foreach (@CommandsFile) {
+        chomp $_;
+        
+        my @commandLines = split(/:/, $_);
+        if ($commandLines[0] =~ /<start/) {    # If true, the line will look similar to <start COMMAND1>
+            $_ =~ s/<(start|end) COMMAND//;    # The goal of this section is to determine the COMMAND Number
+            $_ =~ s/>//;
+            $commandID = $_;
+        } else {
+            $Commands{$commandID . "_" . $commandLines[0]} = $commandLines[1];
+            if ($commandLines[0] =~ /^os$/) {
+                if ($commandLines[1] =~ /$baseOSName/ || $commandLines[1] =~ /$osName/ || $commandLines[1] =~ /^ALL$/) {
+                    push(@CommandIDs, $commandID);
+                }
+            }
+            $i++;
+        } ## end else [ if ($commandLines[0] =~...)]
+        
+    } ## end foreach (@CommandsFile)
+    @CommandIDs = sort {$a <=> $b} (@CommandIDs);
+    return %Commands;
+} ## end sub getCommandsToRun
+
+sub getListOfCommandNumbersToRun() {
+    
+    # Takes no argument.  This gets a list of commands that have been run and devises a list of
+    # commands that need to be run.
+    my @commandsRun = checkIntegrityOfCommands();
+    return commandsToRun(@commandsRun);
+} ## end sub getListOfCommandNumbersToRun
+
+sub commandsToRun(@) {
+    
+    # Takes the array of Command IDs that have been processed.  This will compare the Command IDs
+    # that were located in the command file and the Command IDs that have been processed to divine
+    # a list of Command IDs that need to be processed.
+    my @commandsProcessed = @_;
+    my @commandIDs        = @CommandIDs;
+    my @notProcessedIDs;
+    foreach (@commandsProcessed) {
+        @commandIDs = removeElementFromArray($_, @commandIDs);
+    }
+    return @commandIDs;
+} ## end sub commandsToRun(@)
+
+sub removeElementFromArray($@) {
+    
+    # Takes two arguments, the element to remove from the array and a the array itself.
+    my ($element, @array) = @_;
+    my @returnArray;
+    
+    foreach (@array) {
+        if ($_ != $element) {
+            push(@returnArray, $_);
+        }
+    }
+    return sort {$a <=> $b} (@returnArray);
+} ## end sub removeElementFromArray($@)
+
+sub checkIntegrityOfCommands() {
+    
+    # Takes no argument.  At some point, validifier for past Commands will be added.  For now,
+    # this just returns the Command ID that have been completed according to the log file.
+    my @commandsProcessed = ();
+    my $commandProcessed;
+    my $add;
+    if (-e $LOGFILE) {
+        open(LOG, $LOGFILE);
+        while (<LOG>) {
+            if ($_ =~ /Done with Command /) {
+                $_ =~ s/Done with Command //;
+                $commandProcessed = $_;
+                $commandProcessed =~ s/\.\n//;
+                $add = 'yes';
+                foreach (@commandsProcessed) {
+                    if ($_ == $commandProcessed) {
+                        $add = 'no';
+                    }
+                }
+                if ($add eq 'yes') {
+                    push(@commandsProcessed, $commandProcessed);
+                    
+                }
+            } ## end if ($_ =~ /Done with Command /)
+        } ## end while (<LOG>)
+    } ## end if (-e $LOGFILE)
+    @commandsProcessed = sort {$a <=> $b} (@commandsProcessed);
+    return @commandsProcessed;
+} ## end sub checkIntegrityOfCommands
+
+sub getBaseOSName() {
+    
+    # Takes no argument.  This gets the base operating system name.  The reason that it uses an else clause
+    # Windows, is that the $^O command has only been tested on a Mac running Snow Leopard and
+    # Linux Ubuntu Server.  At this point, it is unknown if smaller operating systems will be recognised
+    # by $^O.  This might be rearranged to have Linux be the default and Windows be a test case.
+    if (OSIsOSX()) {
+        return 'Mac';
+    } elsif (OSIsLinux()) {
+        return 'Linux';
+    } else {
+        return 'Windows';
+    }
+} ## end sub getBaseOSName
+
+sub getOSName() {
+    
+    # Takes no argument.  At some point, this will be modified to include a way to tell Linux Distribution
+    # and version along with Windows edition and version (i.e. Windows XP Professional SP3).
+    if (OSIsOSX()) {
+        return macOSName();
+    }
+    if (OSIsWindows()) {
+        return windowsOSName();
+    }
+    if (OSIsLinux()) {
+        return linuxOSName();
+    }
+} ## end sub getOSName
+
+sub OSIsOSX() {
+    
+    # Takes no argument.  'darwin' is the default case for a Mac OS.
+    if ($^O =~ /darwin/) {
+        return 1;
+    } else {
+        return 0;
+    }
+} ## end sub OSIsOSX
+
+sub OSIsLinux() {
+    
+    # Takes no argument.  'linux' is the default case for a Linux Distro.
+    if ($^O =~ /linux/) {
+        return 1;
+    } else {
+        return 0;
+    }
+} ## end sub OSIsLinux
+
+sub OSIsWindows() {
+    
+    # Takes no argument. 'MSWin' is part of the default case for a Windows Edition.
+    if ($^O =~ /MSWin/) {
+        return 1;
+    } else {
+        return 0;
+    }
+} ## end sub OSIsWindows
+
+sub macOSName() {
+    
+    # Takes no argument.  Determines the version (i.e. 10.6.6) of the OS and returns it along with the product
+    # name (i.e. Mac OS X).  At this time, I don't know if OS 11 will use the same method, so that is why
+    # the product name is included (it can allow differentiation between OS X and OS 11(?)).
+    my @osDataLines = split(/\n/, `sw_vers`);
+    my $osInformation;
+    my $productName = 'Mac OS';
+    my $productVersion;
+    my @lineData;
+    foreach (@osDataLines) {
+        @lineData = split(/:\t/, $_);
+        if ($lineData[0] eq 'ProductName') {
+            $productName = $lineData[1];
+        }
+        if ($lineData[0] eq 'ProductVersion') {
+            $productVersion = $lineData[1];
+        }
+    } ## end foreach (@osDataLines)
+    return $productName . " " . $productVersion;
+} ## end sub macOSName
+
+sub linuxOSName() {
+    
+    # Takes no argument.  Determines the Distro of Linux and the version number.
+    my @osData = `cat /etc/lsb-release`;
+    my @information;
+    foreach (@osData) {
+        if ($_ =~ /DISTRIB_DESCRIPTION/) {
+            @information = split(/=/, $_);
+            $information[1] =~ s/\"//g;
+            $information[1] =~ s/\n$//g;
+            return $information[1];
+        } ## end if ($_ =~ /DISTRIB_DESCRIPTION/)
+    } ## end foreach (@osData)
+} ## end sub linuxOSName
+
+sub windowsOSName() {
+    
+    # Takes no argument.  Determines the Windows Version and Edition and relays service pack.
+    my @osDataFile = `wmic os get Caption,CSDVersion /value`;
+    my @osData;
+    my $osInfo;
+    foreach (@osDataFile) {
+        if ($_ =~ /=/) {
+            push(@osData, $_);
+        }
+    }
+    foreach (@osData) {
+        if ($_ =~ /Caption=/) {
+            $_ =~ s/Caption=//;
+            $_ =~ s/\n//;
+            $osInfo = $_;
+        } elsif ($_ =~ /CSDVersion=/) {
+            $_ =~ s/CSDVersion=//;
+            $_ =~ s/Service Pack/SP/;
+            $_ =~ s/\n//;
+            $osInfo .= ' ' . $_;
+        } else {
+            $osInfo = 'Unknown';
+        }
+    } ## end foreach (@osData)
+    return $osInfo;
+} ## end sub windowsOSName
+
+sub necessaryInstallation() {
+    
+    # Takes no argument.  Determines if this machine's OS is a targeted OS by checking if the os command
+    # Declares 'ALL' OSes or a specific group (in which this OS is part).
+    foreach my $commandID (@CommandNumbersToRun) {
+        if (($Commands{$commandID . "_" . POSSIBLE_DIR_CODES->[3]} eq 'ALL') || (isTargetedOS($commandID))) {
+            return 1;
+        }
+    }
+    return 0;
+} ## end sub necessaryInstallation
+
+sub downloadNecessaryFiles($) {
+    
+    # Takes one argument.  Downloads necessary files, as told by the online command script.
+    my $commandID = shift;
+    my $OSNAME    = osName($commandID);    # gets the OS Name (either the Base Name or the Full Name (with version) as determined by the line 'osVersionRequired' in the command script.
+    if ($Commands{$commandID . "_" . POSSIBLE_DIR_CODES->[1]} ne 'NONE') {    # if there ARE required files
+        my @filesToDownload = split(/, /, $Commands{$commandID . "_" . POSSIBLE_DIR_CODES->[1]});    # create an array of all files to download
+        foreach (@filesToDownload) {
+            $_ = subWildcards($_, $commandID);                                                       # remove any wildcards from the name
+        }
+        if (($Commands{$commandID . "_" . POSSIBLE_DIR_CODES->[3]} eq 'ALL') || (isTargetedOS($commandID))) {    # Although there was necessaryInstallation(), this determines by the Command Number if the command is targetted to the OS whereas necessaryInstallation determined if anything needed installing.
+            mkdir('.' . $Commands{$commandID . "_" . POSSIBLE_DIR_CODES->[0]});                                  # create the hidden command directory
+            foreach (@filesToDownload) {                                                                         # downloads the files
+                getstore($SERVER . $ANUBIS_DIRECTORY_ON_SERVER . '/' . $Commands{$commandID . "_" . POSSIBLE_DIR_CODES->[0]} . '/' . $_, '.' . $Commands{$commandID . "_" . POSSIBLE_DIR_CODES->[0]} . "/" . $_);    # get the file and store it, with the same name, in the hidden Command directory
+                chmod(755, '.' . $Commands{$commandID . "_" . POSSIBLE_DIR_CODES->[0]} . "/" . $_);
+                printToLog("Downloaded " . $_ . " to " . '.' . $Commands{$commandID . "_" . POSSIBLE_DIR_CODES->[0]} . "\n");
+            }
+        } ## end if (($Commands{$commandID...}))
+        
+    } ## end if ($Commands{$commandID...})
+} ## end sub downloadNecessaryFiles($)
+
+sub isTargetedOS($) {
+    
+    # Takes the Command ID as the sole argument.  Determines if, for the Command ID, the os list includes
+    # this OS and uses the osName($commandID) to determine the OS Name to check.
+    my $commandID    = shift;
+    my $OSNAME       = osName($commandID);
+    my @targetedOSES = split(/, /, $Commands{$commandID . "_" . POSSIBLE_DIR_CODES->[3]});
+    foreach (@targetedOSES) {
+        if ($_ eq $OSNAME) {
+            return 1;
+        }
+    }
+    return 0;
+} ## end sub isTargetedOS($)
+
+sub performCommands($) {
+    
+    # Takes one argument.  Runs the command associated with the command id.
+    my $commandID = shift;
+    foreach my $code (POSSIBLE_EXECUTION_COMMANDS) {
+        if ($Commands{$commandID . "_" . POSSIBLE_EXECUTION_CODES->[0]} =~ /^$code->[0]/) {
+            my $updatedCommand = $Commands{$commandID . "_" . POSSIBLE_EXECUTION_CODES->[0]};
+            $updatedCommand =~ s/$code->[0] //;
+            executeCommand($code->[0], subWildcards($updatedCommand, $commandID), $commandID);
+        }
+    } ## end foreach my $code (POSSIBLE_EXECUTION_COMMANDS)
+} ## end sub performCommands($)
+
+sub executeCommand($$$) {
+    
+    # Takes three arguments, the Execution Code, the Execution Command, and the Command ID.
+    # Executes the command based on OS execution signal ('./' or 'start /wait ' from executionSignal()).
+    # Goes into the directory, runs the command, exits the directory, then writes to the log.
+    my ($code, $command, $commandID) = @_;
+    if ($code eq "_execute") {
+        chmod(777, getcwd() . '/.' . $Commands{$commandID . "_" . POSSIBLE_DIR_CODES->[0]});
+        chdir('.' . $Commands{$commandID . "_" . POSSIBLE_DIR_CODES->[0]});
+        system(executionSignal() . $command);
+        chdir("../");
+        printToLog('Executed: ' . executionSignal() . $command . "\n") or die $!;
+    } ## end if ($code eq "_execute")
+} ## end sub executeCommand($$$)
+
+sub executionSignal() {
+    
+    # Takes no argument.  Determines the appropriate execution signal './' or 'start /wait ' by OS type.
+    my $baseOSName = getBaseOSName();
+    if ($baseOSName =~ /(Mac|Linux)/) {
+        return './';
+    } else {
+        return 'start /wait ';
+    }
+} ## end sub executionSignal
+
+sub cleanup($) {
+    
+    # Takes one argument.  Deletes the Command directory and writes to the log.
+    my $commandID = shift;
+    if ($Commands{$commandID . "_" . POSSIBLE_EXECUTION_CODES->[2]} eq "YES") {
+        rmtree('.' . $Commands{$commandID . "_" . POSSIBLE_DIR_CODES->[0]});
+        printToLog("Removed " . $Commands{$commandID . "_" . POSSIBLE_DIR_CODES->[0]} . " directory.\nDone with Command " . $commandID . ".\n");
+    }
+} ## end sub cleanup($)
+
+sub subWildcards($$) {
+    
+    # Takes the string in which wildcards need to be substitued and the command ID as arguments.
+    # All wildcards are in the wildcard hash (%wildcard) and are substitued in the while loop.
+    # This returns the edited string.
+    my ($commandString, $commandID) = @_;
+    my $OSNAME    = osName($commandID);
+    my $EXTENSION = getExtension($commandID);
+    my %wildcards = (
+    '*OS*'  => $OSNAME,
+    '*EXT*' => $EXTENSION
+    );
+    while (my ($key, $value) = each(%wildcards)) {
+        $commandString =~ s/\Q$key\E/\Q$value\E/;
+        $commandString =~ s/\\ \\\./\./;
+        $commandString =~ s/\\\./\./;
+    }
+    return $commandString;
+} ## end sub subWildcards($$)
+
+sub getExtension($) {
+    
+    # Takes the Command ID as the sole argument.  This determines and returns the command extension, as determined by the online commands file and os.
+    my $commandID = shift;
+    my @extensionsListed = split(/,/, $Commands{$commandID . "_" . POSSIBLE_EXECUTION_CODES->[1]});
+    if (getBaseOSName() eq 'Linux') {
+        return $extensionsListed[0];
+    } elsif (getBaseOSName() eq 'Mac') {
+        return $extensionsListed[1];
+    } else {
+        return $extensionsListed[2];
+    }
+} ## end sub getExtension($)
+
+sub osName($) {
+    
+    # Takes the Command ID as the sole argument.  It determines, based on the online command script, if
+    # Versions are necessary in the OS Name and returns the OS Name after making the decision.
+    my $commandID = shift;
+    if ($Commands{$commandID . "_" . POSSIBLE_DIR_CODES->[4]} eq "NO") {
+        return getBaseOSName();
+    } else {
+        return getOSName();
+    }
+} ## end sub osName($)
+
+sub printToLog($) {
+    
+    # Takes the line to write as the sole argument.  Opens the logfile, writes a line to it, and closes the file.
+    my $lineToWrite = shift;
+    open(LOG, '>>' . $LOGFILE);
+    print LOG $lineToWrite;
+    close LOG;
+} ## end sub printToLog($)

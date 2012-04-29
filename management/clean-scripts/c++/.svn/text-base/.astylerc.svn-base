@@ -1,0 +1,10 @@
+--style=java
+--indent=spaces=4
+--break-blocks
+--pad-oper
+--delete-empty-lines
+-j
+--convert-tabs
+--align-pointer=name
+--align-reference=name
+--suffix=none

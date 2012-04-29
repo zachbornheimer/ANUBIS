@@ -1,0 +1,30 @@
+#ifndef REQUIREDFILEWINDOW_H
+#define REQUIREDFILEWINDOW_H
+
+#include <QDialog>
+
+namespace Ui {
+class requiredFileWindow;
+}
+
+class requiredFileWindow : public QDialog {
+    Q_OBJECT
+
+public:
+    explicit requiredFileWindow(QWidget *parent = 0);
+    ~requiredFileWindow();
+
+private:
+    Ui::requiredFileWindow *ui;
+
+private slots:
+    void on_osSpecificCheckBox_clicked(bool checked);
+    void on_appliesToWindowsCheckBox_clicked(bool checked);
+    void on_appliesToMacCheckBox_clicked(bool checked);
+    void on_requireOSVersionCheckBox_clicked(bool checked);
+    void on_buttonBox_accepted();
+    void on_appliesToLinuxCheckBox_clicked(bool checked);
+    void on_buttonBox_rejected();
+};
+
+#endif // REQUIREDFILEWINDOW_H

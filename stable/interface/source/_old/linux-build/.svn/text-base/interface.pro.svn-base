@@ -1,0 +1,43 @@
+#-------------------------------------------------
+#
+# Project created by QtCreator 2011-05-04T10:22:40
+#
+#-------------------------------------------------
+
+QT       += "core gui"
+QT       += "network"
+
+TARGET = "Interface"
+TEMPLATE = "app"
+
+SOURCES += "main.cpp"\
+        "interface.cpp" \
+    "aboutanubis.cpp" \
+    "aboutanubisinterface.cpp" \
+    "tutorialswindow.cpp" \
+    "aboutthetechnetronicsgroupwindow.cpp" \
+    "editdatawindow.cpp" \
+    requiredfilewindow.cpp
+
+HEADERS  += "interface.h" \
+    "aboutanubis.h" \
+    "aboutanubisinterface.h" \
+    "tutorialswindow.h" \
+    "aboutthetechnetronicsgroupwindow.h" \
+    "editdatawindow.h" \
+    requiredfilewindow.h \
+    instance.h
+
+FORMS    += "interface.ui" \
+    "aboutanubis.ui" \
+    "aboutanubisinterface.ui" \
+    "tutorialswindow.ui" \
+    "aboutthetechnetronicsgroupwindow.ui" \
+    "editdatawindow.ui" \
+    requiredfilewindow.ui
+
+RESOURCES += "resources.qrc"
+
+ICON = "ANUBIS.icns"
+
+

@@ -1,0 +1,13 @@
+#include "aboutthetechnetronicsgroupwindow.h"
+#include "ui_aboutthetechnetronicsgroupwindow.h"
+
+aboutTheTechnetronicsGroupWindow::aboutTheTechnetronicsGroupWindow(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::aboutTheTechnetronicsGroupWindow) {
+    ui->setupUi(this);
+    connect(ui->okayButton, SIGNAL(clicked()), this, SLOT(close()));
+}
+
+aboutTheTechnetronicsGroupWindow::~aboutTheTechnetronicsGroupWindow() {
+    delete ui;
+}

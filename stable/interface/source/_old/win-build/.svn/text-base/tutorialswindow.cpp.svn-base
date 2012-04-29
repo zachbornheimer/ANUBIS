@@ -1,0 +1,12 @@
+#include "tutorialswindow.h"
+#include "ui_tutorialswindow.h"
+
+tutorialsWindow::tutorialsWindow(QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::tutorialsWindow) {
+    ui->setupUi(this);
+}
+
+tutorialsWindow::~tutorialsWindow() {
+    delete ui;
+}
