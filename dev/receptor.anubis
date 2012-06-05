@@ -6,6 +6,12 @@
 
 # Note, on Mac OS X and Linux, this script requires super user privilages.
 
+######## TO DO #####################################################
+# 1. Finish database system
+# 2. Make sure that the server is authenticated every access period.
+# 3. Integrate virus scanning on the fly for files
+####################################################################
+
 use strict;
 use warnings;
 use Cwd;
