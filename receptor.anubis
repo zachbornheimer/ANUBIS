@@ -13,7 +13,9 @@
 ####################################################################
 
 use strict;
+no strict 'subs';
 use warnings;
+require ragnarok::Ragnarok;
 use Cwd;
 use File::Path;
 use LWP::Simple;
@@ -47,8 +49,8 @@ sub modxml($);
 sub readConfigXML();
 sub installServer(@);
 sub removeServer(@);
-sub validateIServer(@@);
-sub validateRServer(@@);
+sub validateIServer(\@\@);
+sub validateRServer(\@\@);
 
 my @CommandsFile;
 my %Commands;
@@ -135,19 +137,19 @@ sub modxml($) {   #### INCOMPLETE!!!!!!!!!!!!!!!!!
             }
             push (@tempArray, $codetype);
             push (@tempArray, $configuration->{$serverstate}->{authentication}->{$codetype});
+            undef $codetype;
             push @{ $authenticationArray[$#authenticationArray + 1] }, @tempArray };
             undef @tempArray;
-            undef $codetype;
         }
         
         
         for (0 .. $#authenticationArray) {
-            use Ragnarok;
+            use ragnarok::Ragnarok;
             my $r = new Ragnarok;
             $r->properties(KEY, $authenticationArray[$_][0]);
             $r->properties(CODE, $authenticationArray[$_][1]);
             $r->properties(PROOF, $authenticationArray[$_][2]);
-            if ($r->properties(IRCODE, $authenticationArray[$_][6]) != ERROR_INVALID_IRCODE) {
+            if ($r->properties(IRCODE, $authenticationArray[$_][6]) != E_INVALID_IRCODE) {
                 if ($authenticationArray[$_][5] == "icode") {
                     if (validateIServer(@SERVER, @authenticationArray)) {
                         installServer(@SERVER);
@@ -180,7 +182,7 @@ sub removeServer(@) {
 
 }
 
-sub validateIServer(@@) {
+sub validateIServer(\@\@) {
     # username compiles to key
     # email compiles to code
     # proof, key, and code are all confirmed
@@ -191,7 +193,7 @@ sub validateIServer(@@) {
     # Upon confirmation, return true;
 }
 
-sub validateRServer(@@) {
+sub validateRServer(\@\@) {
     # username compiles to key
     # email compiles to code
     # proof, key, and code are all confirmed
