@@ -1,5 +1,10 @@
-Management is for actually working with the files.
+##############
+### ANUBIS ###
+##############
 
-Stable is where the latest working iterations of ANUBIS reside (everything in there now is garbage thanks to the latest updates that are being designed).
+You are currently in the stable branch.
 
-Dev is where the work is being done.  Note, the receptor.anubis file is actually a perl script and the latest features (involving mod.xml and config.xml) where servers are stored and modified ARE NOT COMPLETE!!!  I am currently working on a way to make sure that the receptor.anubis program does not leave the end-user susceptible to viruses by people who add and remove servers who don't have the authority to do so.
+This is  where the latest working iterations of ANUBIS reside.
+
+Because ANUBIS is in the alpha stage of development and because we are making some major progress in the dev branch,
+everything in here now is garbage in comparison (you should probably know that).
