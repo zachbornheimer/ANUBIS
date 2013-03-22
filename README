@@ -1,3 +1,11 @@
+Note, this software makes use of git submodules.
+
+Please clone this by using:
+git clone --recursive https://github.com/zachbornheimer/ANUBIS.git;
+
+If that doesn't work, once you have cloned the repo, run:
+git submodule init; git submodule update;
+
 ##############
 ### ANUBIS ###
 ##############
@@ -11,12 +19,3 @@ Note, the receptor.anubis file is actually a perl5 script.
 Current Features in progress:
 mod.xml and config.xml integration (server storage and modification)
 Making sure that the user is protected from unauthorized actions
-
-
-
-
-
-
-To install Ragnarok run:
-
-git submodule init; git submodule update;
